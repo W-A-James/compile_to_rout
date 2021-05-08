@@ -37,19 +37,35 @@ fn parse_file(file_name: &str) -> HashMap<u32, u32> {
     out_map
 }
 
-fn dump(code_map: &HashMap<u32, u32>, out_file: Option<&str>) {
+fn dump(code_map: &mut HashMap<u32, u32>, out_file: Option<&str>, to_json: bool) {
     let mut keys: Vec<u32> = Vec::new();
     let mut contents = String::new();
-
     for k in code_map.keys() {
         keys.push(*k);
     }
     keys.sort();
 
-    contents.push_str(&format!("{}\n", keys.len()));
-    for k in keys {
-        contents.push_str(&format!("{}\n", *((code_map.get_key_value(&k).unwrap()).1)));
+    if to_json {
+        let last_index = keys[keys.len() - 1] + 4;
+        keys.push(last_index);
+        code_map.insert(last_index, 0xdeadbeef);
+
+        contents.push_str("[\n");
+        for i in 0..keys.len() {
+            contents.push_str(&format!(
+                "{}{}\n",
+                *((code_map.get_key_value(&(keys[i])).unwrap()).1),
+                if i == keys.len() - 1 { "" } else { "," }
+            ));
+        }
+        contents.push_str("]");
+    } else {
+        contents.push_str(&format!("{}\n", keys.len()));
+        for k in keys {
+            contents.push_str(&format!("{}\n", *((code_map.get_key_value(&k).unwrap()).1)));
+        }
     }
+
     match out_file {
         Some(fname) => {
             let mut file = File::create(Path::new(fname)).unwrap();
@@ -81,10 +97,22 @@ fn main() {
                 .required(false)
                 .help("path of output file"),
         )
+        .arg(
+            Arg::with_name("json")
+                .short("j")
+                .long("json")
+                .takes_value(false)
+                .required(false)
+                .help("output to a json list"),
+        )
         .get_matches();
 
     let source_file = matches.value_of("infile").unwrap();
 
-    let out_map = parse_file(&source_file);
-    dump(&out_map, matches.value_of("outfile"));
+    let mut out_map = parse_file(&source_file);
+    dump(
+        &mut out_map,
+        matches.value_of("outfile"),
+        matches.is_present("json"),
+    );
 }
