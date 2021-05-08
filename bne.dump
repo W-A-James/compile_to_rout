@@ -1,6 +1,0 @@
-
-bne.o:     file format elf32-tradbigmips
-
-Contents of section .text:
- 0000 20080005 00004825 01284820 2108ffff   .....H%.(H !...
- 0010 1500fffd 00000000 00000000 00000000  ................
